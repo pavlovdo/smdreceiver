@@ -82,12 +82,37 @@ daemonize(const char *cmd)
 	}
 }
 
+ssize_t /* Прочитать n байт из дескриптора */
+readn(int fd, void *ptr, size_t n)
+{
+	size_t nleft;
+	ssize_t nread;
+	
+	nleft = n;
+	while (nleft > 0) {
+		if ((nread = read(fd, ptr, nleft)) < 0) {
+			if (nleft == n)
+				return(-1); /* error, return -1 */
+			else
+				break; /* error, return amount read so far */
+		} 
+		else if (nread == 0)
+			break; /* EOF */
+		
+		nleft -= nread;
+		ptr += nread;
+	}
+	return(n - nleft); /* return >= 0 */
+}
+
 int
 main(int argc, char **argv)
 {
-	int			filefd, socketfd, bindfd, listenfd, connfd, readfd;
+	int			counter, filefd, socketfd, bindfd, listenfd, acceptfd, readfd;
 	struct sockaddr_in	servaddr;
 	char			buff[MAXLINE];
+	char			smbuff[1];
+	char			midbuff[3];	
 	char ln[1] = {'\n'};		/*	Adding newline character	*/
 	MYSQL 			mysql;
 
@@ -138,13 +163,25 @@ main(int argc, char **argv)
 	for ( ; ; ) {
 /*	Accept a connection on a listening socket and extracts the first connection request on the queue of pending connections for the listening socket, 
 	sockfd, creates a new connected socket, and returns a new file descriptor referring to that socket.	*/
-		connfd = accept(socketfd, (SA *) NULL, NULL);
+		acceptfd = accept(socketfd, (SA *) NULL, NULL);
 
 //	Read attempts to read up to count bytes from file descriptor fd into the buffer starting at buf.
-	readfd = read(connfd, buff, 180);
-		write(filefd, buff, strlen(buff));
-		write(filefd, ln, sizeof(ln));
-		close(connfd);
+//	readfd = read(acceptfd, buff, 180);
+	counter = 1;
+	while ( (readfd = read(acceptfd, smbuff, 1)) > 0) { 
+//			printf("%s\n", buff);
+			if ( smbuff[1] != ',' )
+				write(filefd, smbuff, strlen(smbuff));
+			else 	{
+				smbuff[1] = '\n';
+				write(filefd, smbuff, strlen(smbuff));
+			}
+			snprintf(midbuff, sizeof(midbuff), "%d\n", counter);
+			write(filefd, midbuff, sizeof(midbuff));
+                        counter++;
+		}
+//		write(filefd, ln, sizeof(ln));
+		close(acceptfd);
 	}
 	close(filefd);
 }
