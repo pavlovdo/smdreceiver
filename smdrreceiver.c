@@ -166,17 +166,10 @@ main(int argc, char **argv)
 		acceptfd = accept(socketfd, (SA *) NULL, NULL);
 
 //	Read attempts to read up to count bytes from file descriptor fd into the buffer starting at buf.
-	while ( (readfd = read(acceptfd, smbuff, 1)) > 0) { 
-			if ( smbuff[0] == ',' )
-//				write(filefd, smbuff, sizeof(smbuff));
-//			else 	{
-				smbuff[0] = '\n';
+	while ( (readfd = read(acceptfd, smbuff, 1)) > 0)  
+//			if ( smbuff[0] == ',' )
+//				smbuff[0] = '\n';
 				write(filefd, smbuff, sizeof(smbuff));
-//			}
-//			snprintf(midbuff, sizeof(midbuff), "%d\n", counter);
-//			write(filefd, midbuff, sizeof(midbuff));
-		}
-//		write(filefd, ln, sizeof(ln));
 		close(acceptfd);
 	}
 	close(filefd);
